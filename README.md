@@ -1,7 +1,7 @@
 # insta_recommend
 Instagram recommend system
 
-Файл insta_parser.py запускается поредством команды 'python insta_parser.py [tag]', где вместо [tag] ставится главный тег, по которому нужно выполнить поиск.
+Файл insta_parser.py запускается поредством команды 'python insta_parser.py [tag]' из терминала, где вместо [tag] ставится главный тег, по которому нужно выполнить поиск.
 insta_parser.py имеет зависимости:
 - requests
 - json
