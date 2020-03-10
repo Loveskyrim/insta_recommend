@@ -1,7 +1,6 @@
 import csv, os, sys
 from langdetect import detect, detect_langs
 from langdetect import DetectorFactory
-import re
 import emoji
 DetectorFactory.seed = 0
 csvfile = sys.argv[1]
@@ -10,23 +9,6 @@ csvfile = sys.argv[1]
 def extract_emojis(str):
   return ''.join(c for c in str if c not in emoji.UNICODE_EMOJI)
 
-# def remove_emoji(string):
-#     emoji_pattern = re.compile("["
-#                            u"\U0001F600-\U0001F64F"  # emoticons
-#                            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-#                            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-#                            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-#                            u"\U00002702-\U000027B0"
-#                            u"\U000024C2-\U0001F251"
-#                            u"\U0001f926-\U0001f937"
-#                            u"\u200d"
-#                            u"\u2640-\u2642" 
-#                            "]+", flags=re.UNICODE)
-#     return emoji_pattern.sub(r'', string)
-
-def deSign(inputString):
-    return inputString.encode('utf-8', 'ignore').decode('utf-8')
-    # return reg.sub('', inputString)
 
 def add_language(csvfile):
 
