@@ -29,7 +29,7 @@ def add_language(csvfile):
             if len(de_row) > 0:
                 try:
                     list_of_langs = detect_langs(de_row)
-                    print(len(list_of_langs))
+                    # print(len(list_of_langs))
                     l = list_of_langs[0]
                     if l.lang == 'en' and l.prob > 0.9:
                         row.append(list_of_langs)
