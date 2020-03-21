@@ -1,8 +1,7 @@
-import requests
 import json
 import csv
 import sys, os
-import numpy as np
+
 csvfile = sys.argv[1]
 
 
