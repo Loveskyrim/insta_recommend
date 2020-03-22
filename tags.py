@@ -37,7 +37,7 @@ def norm_tags(csvfile):
             tags = set(get_tags(description))
 
             for tag in tags:
-                row_new = [row[owner_id], row[timestamp], row[loc_id], tag]
+                row_new = [row[owner_id], row[timestamp].replace(',', ''), row[loc_id], tag]
                 writer.writerow(row_new)
 
 
