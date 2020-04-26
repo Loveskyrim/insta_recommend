@@ -333,7 +333,7 @@ def get_all_location_posts(url, tag):
     Calls get_hashtag_posts() to collect posts from each page of location-search result page.
     """
     end_cursor = ''
-    for index in range(1):
+    for index in range(20):
         url1 = url + end_cursor
         temp = get_hashtag_posts(url1)
         if end_cursor != temp and temp:
