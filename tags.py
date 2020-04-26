@@ -8,10 +8,20 @@ path = sys.argv[1]
 def get_tags(text):
     if text:
         text = text.split()
+        temp_text = []
+        temp_tags = set()
         for word in text:
-            if word.count('#') == 1 and word.startswith('#'):
-                word = word.strip('#')
-                yield word
+            count = word.count('#')
+            if count == 1: temp_tags.add(word.split('#'))
+            elif count > 1:
+                temp_word = set(word.strip('#').split('#'))
+                temp_tags.union(temp_word)
+        for word in temp_tags:
+            word = word.strip('#')
+#                word = word.strip('#')
+#                regex = r'\b[|:]\b'
+#                print(re.sub(regex, ' \g<0> ', s))
+            yield word
 
 
 def norm_tags(path):
@@ -19,7 +29,7 @@ def norm_tags(path):
     print(items)
     os.system('mkdir tags')
     for csvfile in items:
-        with open(path + '/' + csvfile, 'r') as fin, open('tags/tags_'+csvfile, 'w') as fout:
+        with open(path + '/' + csvfile, 'r', encoding="cp1251") as fin, open('tags/tags_'+csvfile, 'w') as fout:
             reader = csv.reader(fin, lineterminator='\n')
 
             writer = csv.writer(fout, lineterminator='\n')
