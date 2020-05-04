@@ -1,10 +1,16 @@
 import requests
+from fake_useragent import UserAgent
 import json
 from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException
 from selenium import webdriver
 import sys, os
 import time
+import socks
+import socket
+# from random import randint
+# from bs4 import BeautifulSoup
 
+# from proxy_requests import ProxyRequests
 
 search_type = sys.argv[1] # 'tag' or 'location'
 path_csv = sys.argv[2]
@@ -26,67 +32,65 @@ shortcuts = set()
 
 profile_tags = set()
 
+proxies_set = []
+
+global_proxy = None
+
 #Print dist as a JSON
 def jprint(data_dict):
     print(json.dumps(data_dict, indent=4))
 
 
-# def extract_json(text, decoder=JSONDecoder()):
-#     pos = 0
-#     while True:
-#         match = text.find('{', pos)
-#         if match == -1:
-#             break
-#         try:
-#             result, index = decoder.raw_decode(text[match:])
-#             yield result
-#             pos = match + index
-#         except ValueError:
-#             pos = match + 1
+def get_ip(url):
+    i = 0
+    while proxies_set:
+        print(f"Proxy data - {proxies_set[i]}")
+        proxies = {'http': f"socks4://{proxies_set[i]}",
+            'https': f"socks4://{proxies_set[i]}"}
+        try:
+            response = requests.get(url, headers={'User-Agent': UserAgent().chrome}, proxies=proxies, timeout=6)
+            r_code = response.status_code
+            print(r_code)
+            # response = response.json()
+            if response and r_code == requests.codes.ok:
+                return proxies
+            else:
+                del proxies_set[i]
+        except Exception as e:
+            print(e)
+            del proxies_set[i]
 
 
 def connection(url, session=None):
     # print(url)
-    session = session or requests.Session()
-    r = session.get(url)
-    r_code = r.status_code
-    # print(r_code)
+    # session = session or requests.Session()
+    # ssocks.set_default_proxy(socks.SOCKS5, "localhost", 9150)
+    # socket.socket = socks.socksocket
 
-    if r_code == requests.codes.ok:
-        #the code is 200 or valid
-        return r
-    else:
-        return None
-
-    # browser = webdriver.Safari()
-    # browser.get(url)
-    # t = 0
-    # count = 0
-    # while t == 0:
-    #     print('RUN!')
-    #     while t <= 25:
-    #         browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    #         time.sleep(random.uniform(1,1.5))
-    #         browser.execute_script("window.scrollTo(0, 0);")
-
-    #         t += 1
-    #         count += 1
-    #         print('total: ~' + str(count * 4))
-
-    # try:
-    #     instapars = browser.find_element_by_xpath("//*[contains(text(), 'window._sharedData = {')]")
+    r_code = 0  
+    proxies = None     
+    while True:
         
-    #     pre = instapars.get_property("innerHTML")
+        print(proxies)
+        try:
+            r = requests.get(url, headers={'User-Agent': UserAgent().chrome}, proxies=proxies)
+            r_code = r.status_code
+            r = r.json()
+            if r_code == requests.codes.ok:
+                break
+            else:
+                proxies = get_ip(url)
+        except Exception as e:
+            proxies = get_ip(url)
 
-    #     config = list(extract_json(pre))[0]
-    #     entry_data = config.get('entry_data', None)
-    #     tag_page = entry_data.get('TagPage', None)[0]
-    #     browser.quit()
-    #     return tag_page
-    # except:
-    #     browser.quit()
-    # else:
-    #     return None
+    return r
+        
+
+
+def proxies_list(fileObj):
+    with open(fileObj, 'r') as f:
+        for line in f.readlines():
+            proxies_set.append(line)
 
 
 def flatten_list(the_list):
@@ -94,6 +98,7 @@ def flatten_list(the_list):
         flat = ' '.join(list_item for list_item in the_list if list_item)
         return flat
     return None
+
 
 #Get tags '#' from given text
 def get_tags(text):
@@ -103,6 +108,7 @@ def get_tags(text):
             if word.startswith('#'):
                 word = word.strip('#')
                 yield word
+
 
 #Get all post-shortcuts from media_dict
 def get_posts_shortcut(media_dict):
@@ -166,7 +172,7 @@ def get_posts(form, data, info=False):
     if not info:
         get_posts_shortcut(posts)
         return None
-    if info:
+    else:
         likes = get_posts_info(posts)
         return likes
 
@@ -180,23 +186,28 @@ def get_profile_name(data):
     return None
 
 
-def posts_connect(url, t):
+def posts_connect(shortcut, file):
     """
     posts_connect(url)
     Get username by post shortcut and append it to 'users'
     """
+    url = 'https://www.instagram.com/p/' + shortcut + '/?__a=1'
     ig_post_dict = connection(url)
 
     if ig_post_dict:
-        ig_post_dict = ig_post_dict.json()
+        # try:
+        #     ig_post_dict = ig_post_dict.json()
+        # except Exception as e:
+        #     print('Post response is empty')
         # jprint(ig_post_dict)
         post_data = ig_post_dict.get('graphql', None)
         profile_name = get_profile_name(post_data)
-        t.write(profile_name+'\n')
+        with open(file, 'a') as t:
+            t.write(profile_name+'\n')
         # users.add(profile_name)
         print(profile_name)
     else:
-        print('Oops!')
+        print('Post response is empty')
 
 
 def post_connect(url):
@@ -206,7 +217,7 @@ def post_connect(url):
 
         jprint(ig_post_dict)
     else:
-        print('Oops!')
+        print('Post response is empty')
 
 
 def user_page_connect(url, index):
@@ -214,7 +225,7 @@ def user_page_connect(url, index):
     ig_user_dict = connection(url)
 
     if ig_user_dict:
-        ig_user_dict = ig_user_dict.json()
+        # ig_user_dict = ig_user_dict.json()
         # jprint(ig_user_dict)
         user_data = ig_user_dict.get('graphql', None).get('user', None)
         media = user_data.get('edge_owner_to_timeline_media', None)
@@ -265,8 +276,11 @@ def get_hashtag_posts(url):
     ig_data_dict = connection(url)
 
     if ig_data_dict:
-        ig_data_dict = ig_data_dict.json()
-
+        # try:
+        #     ig_data_dict = ig_data_dict.json()
+        # except Exception as e:
+        #     print(e)
+        #     return None
         data = ig_data_dict.get('graphql', None)
         if search_type == 'tag':
             data = data.get('hashtag', None)
@@ -311,10 +325,9 @@ def get_all_hashtag_posts(url, tag):
     # path = os.path.dirname('tag_usernames')
     if not os.path.exists('tag_usernames'):
         os.makedirs('tag_usernames')
-    with open('tag_usernames/'+tag+'.txt', 'w') as t:
-        for shortcut in shortcuts:
-            post_url = 'https://www.instagram.com/p/' + shortcut + '/?__a=1'
-            posts_connect(post_url, t)
+    file = 'tag_usernames/'+tag+'.txt'
+    for shortcut in shortcuts:
+        posts_connect(shortcut, file)
         # print("Users: ", len(users))
 
     # end_cursor = ''
@@ -333,7 +346,7 @@ def get_all_location_posts(url, tag):
     Calls get_hashtag_posts() to collect posts from each page of location-search result page.
     """
     end_cursor = ''
-    for index in range(1):
+    for index in range(20):
         url1 = url + end_cursor
         temp = get_hashtag_posts(url1)
         if end_cursor != temp and temp:
@@ -346,10 +359,9 @@ def get_all_location_posts(url, tag):
     # path = os.path.dirname('tag_usernames')
     if not os.path.exists('location_usernames'):
         os.makedirs('location_usernames')
-    with open('location_usernames/'+tag+'.txt', 'w') as t:
-        for shortcut in shortcuts:
-            post_url = 'https://www.instagram.com/p/' + shortcut + '/?__a=1'
-            posts_connect(post_url, t)
+    file = 'location_usernames/'+tag+'.txt'
+    for shortcut in shortcuts:
+        posts_connect(shortcut, file)
         # print("Users: ", len(users))
 
 
@@ -365,8 +377,12 @@ def get_location_id(tag):
     # Uncomment the line below if you'd like to scrape without a new Chrome window every time.
     # options.add_argument('--headless') # Лучше не использовать
     # chrome_driver_path = get_chrome_driver_path()
-
-    driver = webdriver.Chrome(executable_path="/Users/andrejkonovalov/Documents/папка/python/hackaton/future_hack/Glassdoor/glassdoor/chromedriver_2", options=options)
+    # service_args = [
+    # '--proxy=127.0.0.1:9050', # You can change these parameters to your liking.
+    # '--proxy-type=socks5', # Use socks4/socks5 based on your usage.
+    # ]
+    os.environ["webdriver.chrome.driver"] = "/Users/andrejkonovalov/Documents/папка/python/insta_recommend/chromedriver_2"
+    driver = webdriver.Chrome(executable_path="/Users/andrejkonovalov/Documents/папка/python/insta_recommend/chromedriver_2", options=options)
     driver.set_window_size(1200, 600)
 
     url = 'https://www.instagram.com/explore/locations/'
@@ -388,6 +404,7 @@ def get_location_id(tag):
     return ref + '?__a=1&max_id='
 
 
+
 def processing():
     
     with open(path_csv, 'r', encoding='utf-8') as fh: #открываем файл на чтение
@@ -398,16 +415,22 @@ def processing():
     for tag in data:
         tag = tag.get('name')
         url = 'https://www.instagram.com/explore/tags/' + tag + '/?__a=1'
-    # print(tags)
+        
         if search_type == 'tag':
             get_all_hashtag_posts(url, tag)
         elif search_type == 'location':
             reference = get_location_id(tag)
+
             if reference != '?__a=1&max_id=':
                 get_all_location_posts(reference, tag)
         users.clear()
         shortcuts.clear()
         profile_tags.clear()
 
+
+proxies_list('socks4.txt')
 processing()
+
+
+
 
